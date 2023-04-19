@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Smile Detector</title>
+    <script src="/face-api.js/dist/face-api.min.js"></script>
+    <style>
+      /* Center the app horizontally and vertically */
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        height: 100vh;
+        margin: 0;
+      }
+
+      /* Style the video element */
+      #video {
+        width: 100%;
+        max-width: 640px;
+        height: auto;
+        border: 1px solid lightgray;
+        border-radius: 10px;
+        box-shadow: 0 0 10px 4px rgba(0, 0, 0, 0.6);
+      }
+
+      #canvas {
+        border: 1px solid lightgray;
+        border-radius: 10px;
+        box-shadow: 0 0 10px 4px rgba(0, 0, 0, 0.6);
+      }
+    </style>
+  </head>
+  <body>
+    <video id="video" width="640" height="480" autoplay></video>
+    <canvas id="canvas"></canvas>
+
+    <script>
+      const video = document.getElementById("video");
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+
+      let gameLoopId;
+
+      // Set the canvas size to match the video dimensions
+      video.addEventListener("loadedmetadata", function () {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        // Draw a floor on the canvas
+        ctx.fillStyle = "gray";
+        ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
+
+        // Draw a character on the canvas
+        ctx.fillStyle = "yellow";
+        ctx.fillRect(canvas.width / 2 - 25, canvas.height - 100, 50, 50);
+      });
+
+      // Request permission to access the user's camera
+      navigator.mediaDevices
+        .getUserMedia({ video: true })
+        .then((stream) => {
+          // Set the video element's source to the camera stream
+          video.srcObject = stream;
+          video.play();
+        })
+        .catch((error) => {
+          console.error("Error accessing camera:", error);
+        });
+
+      // Load the face-api.js models
+      Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri("./face-api.js/weights"),
+        faceapi.nets.faceLandmark68Net.loadFromUri("./face-api.js/weights"),
+        faceapi.nets.faceExpressionNet.loadFromUri("./face-api.js/weights"),
+      ])
+        .then(startVideo)
+        .catch((error) => {
+          console.error("Error loading face-api.js models:", error);
+        });
+
+      // Start the video stream and smile detection
+      function startVideo() {
+        navigator.mediaDevices
+          .getUserMedia({ video: true })
+          .then((stream) => {
+            // Set the video element's source to the camera stream
+            video.srcObject = stream;
+            video.play();
+            // Start smile detection
+
+            gameLoopId = setInterval(detectSmile, 1000 / 60);
+          })
+          .catch((error) => {
+            console.error("Error accessing camera:", error);
+          });
+      }
+
+      // Detect smiles in the video stream
+      function detectSmile() {
+        // Get the video element's dimensions
+        const dimensions = {
+          width: video.videoWidth,
+          height: video.videoHeight,
+        };
+        // Detect faces in the video stream
+        faceapi
+          .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+          .withFaceLandmarks()
+          .withFaceExpressions()
+          .then((result) => {
+            // Check if the face is smiling
+            if (result && result.expressions.happy > 0.9) {
+              // Replace this with the action you want to take when a smile is detected
+              console.log("Smile detected!", { result });
+              // Make the red square jump
+              const jumpHeight = 100;
+              const jumpDuration = 500;
+              const jumpStartTime = Date.now();
+              const jumpEndTime = jumpStartTime + jumpDuration;
+              const jumpIntervalId = setInterval(() => {
+                const currentTime = Date.now();
+                const timeElapsed = currentTime - jumpStartTime;
+                const jumpProgress = Math.min(timeElapsed / jumpDuration, 1);
+                const jumpDistance =
+                  -jumpHeight * Math.sin(jumpProgress * Math.PI);
+
+                const currentY = canvas.height - 100 + jumpDistance;
+                // Check if the jump is complete
+                if (currentTime >= jumpEndTime) {
+                  clearInterval(jumpIntervalId);
+                }
+                // Update the position of the red square
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "gray";
+                ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
+                ctx.fillStyle = "green";
+                ctx.fillRect(canvas.width / 2 - 25, currentY, 50, 50);
+                ctx.fillStyle = "white";
+                ctx.font = "bold 20px Arial";
+                ctx.fillText(
+                  jumpProgress,
+                  canvas.width / 2,
+                  canvas.height - 25
+                );
+              }, 1000 / 60);
+            } else {
+              text.innerText = "Smile not detected!";
+            }
+          })
+          .catch((error) => {
+            console.error("Error detecting faces:", error);
+          });
+      }
+    </script>
+  </body>
+</html>
