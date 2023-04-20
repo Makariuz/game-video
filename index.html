@@ -56,6 +56,77 @@
         ctx.fillRect(canvas.width / 2 - 25, canvas.height - 100, 50, 50);
       });
 
+
+      let obstacles = [];
+
+function createObstacle() {
+  const obstacle = {
+    x: canvas.width,
+    y: canvas.height - 100,
+    width: 50,
+    height: 50,
+    speed: 5,
+  };
+  obstacles.push(obstacle);
+}
+
+function moveObstacles() {
+  for (let i = 0; i < obstacles.length; i++) {
+    const obstacle = obstacles[i];
+    obstacle.x -= obstacle.speed;
+
+    // Remove obstacles that are off the screen
+    if (obstacle.x < -obstacle.width) {
+      obstacles.splice(i, 1);
+      i--;
+    }
+  }
+}
+
+function drawObstacles() {
+  ctx.fillStyle = "red";
+  for (let i = 0; i < obstacles.length; i++) {
+    const obstacle = obstacles[i];
+    ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+  }
+}
+
+setInterval(function () {
+  createObstacle();
+}, 2000);
+
+
+      // Initialize ground movement variables
+      let groundX = 0;
+      const groundSpeed = 2;
+
+      // Move the ground back and forth
+      function moveGround() {
+        groundX += groundSpeed;
+  if (groundX > canvas.width) {
+    groundX = -canvas.width;
+  }
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  drawObstacles();
+
+  ctx.fillStyle = "gray";
+  ctx.fillRect(groundX, canvas.height - 50, canvas.width, 50);
+  ctx.fillRect(
+    groundX + canvas.width,
+    canvas.height - 50,
+    canvas.width,
+    50
+  );
+
+  // Draw a character on the canvas
+  ctx.fillStyle = "yellow";
+  ctx.fillRect(canvas.width / 2 - 25, canvas.height - 100, 50, 50);
+
+  moveObstacles();
+      }
+
       // Request permission to access the user's camera
       navigator.mediaDevices
         .getUserMedia({ video: true })
@@ -89,12 +160,22 @@
             video.play();
             // Start smile detection
 
-            gameLoopId = setInterval(detectSmile, 1000 / 60);
+            gameLoopId = setInterval(detectSmile, 1000 / 1);
+            setInterval(drawObstacles, 60);
+
           })
           .catch((error) => {
             console.error("Error accessing camera:", error);
           });
       }
+
+      let obstacle = {
+        x: canvas.width,
+        y: canvas.height - 100,
+        width: 50,
+        height: 50,
+        speed: 5,
+      };
 
       // Detect smiles in the video stream
       function detectSmile() {
@@ -114,7 +195,7 @@
               // Replace this with the action you want to take when a smile is detected
               console.log("Smile detected!", { result });
               // Make the red square jump
-              const jumpHeight = 100;
+              const jumpHeight = 200;
               const jumpDuration = 500;
               const jumpStartTime = Date.now();
               const jumpEndTime = jumpStartTime + jumpDuration;
@@ -143,15 +224,19 @@
                   canvas.width / 2,
                   canvas.height - 25
                 );
+
+               
               }, 1000 / 60);
             } else {
-              text.innerText = "Smile not detected!";
+              console.log("no detection");
             }
           })
           .catch((error) => {
             console.error("Error detecting faces:", error);
           });
       }
+
+      moveGround();
     </script>
   </body>
 </html>
